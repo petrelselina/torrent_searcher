@@ -1,7 +1,7 @@
 from abc import abstractmethod, ABCMeta
 
 from requests import Session
-from src.utils import get_latest_user_agent
+from src.base.utils import get_latest_user_agent
 
 
 class TorrentSearcher(object):

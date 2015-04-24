@@ -1,8 +1,8 @@
-from distutils.core import setup
+from setuptools import setup
 
 setup(
     name='TorrentSearcher',
-    version='',
+    version='0.1',
     packages=['src', 'src.base'],
     url='https://github.com/omerbenamram/torrent_searcher',
     license='',

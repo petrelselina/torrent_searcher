@@ -2,7 +2,7 @@ import logbook
 
 from bs4 import BeautifulSoup
 from src.base.torrent_searcher import TorrentSearcher
-from src.utils import SIZE_REGEX
+from src.base.utils import SIZE_REGEX
 
 logger = logbook.Logger(__name__)
 
