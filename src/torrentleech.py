@@ -48,7 +48,7 @@ class TorrentLeechSearcher(TorrentSearcher):
                             'leechers': int(row.find('td', attrs={'class': 'leechers'}).text),
                         })
                     else:
-                        logger.debug("coudnt find info on row {0}".format(index))
+                        logger.debug("could not find info on row {0}".format(index))
                         continue
             logger.debug("Successfully processed {0} results".format(len(results)))
         else:
