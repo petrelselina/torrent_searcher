@@ -1,5 +1,6 @@
 from lxml.etree import XPath
-from src.base.torrent_searcher import TorrentSearcher
+
+from torrentsearcher.base.torrent_searcher import TorrentSearcher
 
 
 class KickAssTorrentsSearcher(TorrentSearcher):

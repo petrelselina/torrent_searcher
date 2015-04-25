@@ -1,13 +1,15 @@
 import re
-import logbook
 from abc import abstractmethod, ABCMeta, abstractproperty
+
+import logbook
 from humanfriendly import format_size
 from humanfriendly import parse_size
 from humanfriendly import Spinner
 from lxml.html import fromstring
 
 from requests import Session
-from src.base.utils import get_latest_user_agent, SIZE_REGEX
+from torrentsearcher.base.utils import get_latest_user_agent, SIZE_REGEX
+
 
 logger = logbook.Logger(__name__)
 

@@ -1,7 +1,7 @@
 import logbook
 from lxml.etree import XPath
 
-from src.base.torrent_searcher import TorrentSearcher
+from torrentsearcher.base.torrent_searcher import TorrentSearcher
 
 
 logger = logbook.Logger(__name__)
