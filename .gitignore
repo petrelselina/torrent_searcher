@@ -58,3 +58,4 @@ target/
 *.ipynb
 
 .ipynb_checkpoints
+.idea/
