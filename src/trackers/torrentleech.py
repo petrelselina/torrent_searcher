@@ -1,6 +1,10 @@
+import re
+from humanfriendly import format_size
+from humanfriendly import parse_size
 import logbook
+from lxml.etree import XPath
+from lxml.html import fromstring
 
-from bs4 import BeautifulSoup
 from src.base.torrent_searcher import TorrentSearcher
 from src.base.utils import SIZE_REGEX
 
@@ -11,6 +15,12 @@ class TorrentLeechSearcher(TorrentSearcher):
     site_url = "https://torrentleech.org/"
     login_url = "https://torrentleech.org/user/account/login/"
     base_url = "https://torrentleech.org/torrents/browse/index/query/"
+
+    table_xpath = XPath('//*[@id="torrenttable"]')
+    link_xpath = XPath('td[2]/span[1]/a')
+    seeders_xpath = XPath('td[7]')
+    leechers_xpath = XPath('td[8]')
+    size_xpath = XPath('td[5]')
 
     def __init__(self):
         super(TorrentLeechSearcher, self).__init__()
@@ -26,31 +36,22 @@ class TorrentLeechSearcher(TorrentSearcher):
     def query_tracker(self, term):
         results = []
         resp = self.session.get(self.base_url + term, timeout=None)
-        bs = BeautifulSoup(resp.text, "html5lib")
-
-        torrent_table = bs.find('table', attrs={'id': 'torrenttable'})
+        html = fromstring(resp.text)
+        torrent_table = self.table_xpath(html)
 
         if torrent_table:
-            rows = torrent_table('tr')
-            # Skip header row
-            logger.debug("Found {0} results on page".format(len(rows) - 1))
-            for index, row in enumerate(rows[1:]):
-                with logger.catch_exceptions():
-                    link = row.find('td', attrs={'class': 'name'})
-                    if link:
-                        logger.debug("working on: " + link.a.text)
-                        results.append({
-                            'id': link.a['href'].replace('/torrent/', ''),
-                            'name': link.a.text,
-                            'url': row.find('td', attrs={'class': 'quickdownload'}).a['href'],
-                            'size': row.find_next(text=SIZE_REGEX),
-                            'seeders': int(row.find('td', attrs={'class': 'seeders'}).text),
-                            'leechers': int(row.find('td', attrs={'class': 'leechers'}).text),
-                        })
-                    else:
-                        logger.debug("could not find info on row {0}".format(index))
-                        continue
-            logger.debug("Successfully processed {0} results".format(len(results)))
-        else:
-            logger.error("Could not find the torrent table!")
+            with logger.catch_exceptions():
+                # we skip tbody element
+                for row in torrent_table[0][1]:
+                    result = {
+                        'name': self.link_xpath(row)[0].text_content(),
+                        'link': self.link_xpath(row)[0].get('href'),
+                        'seeders': self.seeders_xpath(row)[0].text_content(),
+                        'leechers': self.leechers_xpath(row)[0].text_content(),
+                        'size': ''
+                    }
+                    match = re.search(SIZE_REGEX, self.size_xpath(row)[0].text_content())
+                    if match:
+                        result['size'] = format_size(parse_size(match.group()))
+                    results.append(result)
         return results
