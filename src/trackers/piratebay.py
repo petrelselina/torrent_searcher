@@ -1,4 +1,5 @@
 import re
+from humanfriendly import parse_size, format_size
 import logbook
 from src.base.torrent_searcher import TorrentSearcher
 from src.base.utils import SIZE_REGEX
@@ -42,6 +43,6 @@ class PirateBaySearcher(TorrentSearcher):
                     }
                     match = re.search(SIZE_REGEX, self.info_xpath(row)[0].text_content())
                     if match:
-                        result['size'] = match.string
+                        result['size'] = format_size(parse_size(match.group()))
                     results.append(result)
         return results

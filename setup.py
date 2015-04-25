@@ -8,5 +8,5 @@ setup(
     license='',
     author='Omer',
     author_email='omerbenamram@gmail.com',
-    description='A Simple Torrent Searcher', requires=['requests', 'logbook', 'BeautifulSoup4', 'html5lib']
+    description='A Simple Torrent Searcher', requires=['requests', 'logbook', 'BeautifulSoup4', 'html5lib', 'lxml']
 )
