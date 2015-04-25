@@ -3,11 +3,12 @@ from setuptools import setup
 setup(
     name='TorrentSearcher',
     version='0.1',
-    packages=['src', 'src.base'],
+    packages=['torrentsearcher'],
     url='https://github.com/omerbenamram/torrent_searcher',
-    license='',
+    license='LGPL',
     author='Omer',
     author_email='omerbenamram@gmail.com',
-    description='A Simple Torrent Searcher', requires=['requests', 'logbook', 'BeautifulSoup4', 'html5lib', 'lxml',
+    description='A Simple Torrent Searcher',
+    requires=['requests', 'logbook', 'BeautifulSoup4', 'html5lib', 'lxml',
                                                        'humanfriendly']
 )
