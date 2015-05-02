@@ -72,7 +72,6 @@ class TorrentSearcher(object):
             logger.debug("Found torrent table with {0} values".format(total_torrents))
             for index, row in enumerate(torrent_table[0]):
                 try:
-                    logger.debug("Working on result {0}".format(index))
                     result = {
                         'name': self.link_xpath(row)[0].text_content(),
                         'link': self.link_xpath(row)[0].get('href'),
@@ -87,7 +86,7 @@ class TorrentSearcher(object):
                     results.append(result)
 
                 except IndexError as e:
-                    """Exception is thrown when table headers is parsed.."""
+                    """Exception is thrown when table headers are parsed.."""
                     logger.exception(e)
                     pass
         else:
