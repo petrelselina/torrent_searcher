@@ -1,0 +1,19 @@
+{
+  "devDependencies": {
+      "path": "0.4.9 ",
+      "gulp": "^3.6.0",
+      "gulp-util": "^2.2.19",
+      "gulp-less": "1.3.3",
+      "gulp-concat": "^2.3.0",
+      "gulp-stylus": "1.3.4",
+      "gulp-jade": "^0.6.0",
+      "gulp-clean": "0.3.1 ",
+      "gulp-livereload": "2.1.1",
+      "gulp-watch": "3.0.0 ",
+      "gulp-plumber": "0.6.6",
+      "lazypipe": "0.2.2 "
+  },
+    "engines": {
+    "node": ">=0.10.0"
+  }
+}

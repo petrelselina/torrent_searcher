@@ -1,0 +1,50 @@
+include ../mixins
+doctype html
+
+html
+    head
+        meta(charset='utf-8')
+        meta(name='viewport', content='width=device-width', initial-scale='1.0')
+
+
+        //auto-reload for jade
+        +script("http://localhost:" + buildCfg.liveReloadPort + "/livereload.js?snipver=1")
+
+
+        +script-cdn("jquery/2.1.4/jquery.js")
+
+        +style-cdn("twitter-bootstrap/3.3.4/css/bootstrap.css")
+        +script-cdn("bootstrap/3.3.4/dist/js/bootstrap.js")
+
+        +style-cdn("font-awesome/4.3.0/css/font-awesome.css")
+
+
+        title Torrent Searcher2!
+    body
+        div(align='center')
+            h1 Hello World!
+            strong
+            button(class='btn', data-action='go').
+                Grab stuff
+        div(align='center')
+            table.table
+                thead
+                    tr
+                        th Name
+                        th link
+                        th Seeders
+                        th Leechers
+                 tbody
+                    tr
+                        td hi
+                        td h2
+                        td g4
+                        td :)
+
+
+
+
+
+
+
+
