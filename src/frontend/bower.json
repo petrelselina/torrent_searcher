@@ -1,0 +1,26 @@
+{
+  "name": "TorrentSearcher",
+  "version": "0.1.0",
+  "homepage": "https://github.com/omerbenamram/torrent_searcher",
+  "authors": [
+    "Omer Ben-Amram <omerbenamram@gmail.com>"
+  ],
+  "description": "a simple torrent searcher",
+  "moduleType": [
+    "node"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "~1.3.15",
+    "gulp": "~3.8.11",
+    "gulp-stylus": "~2.0.0",
+    "livereload": "~2.2.1"
+  }
+}
