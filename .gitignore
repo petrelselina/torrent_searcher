@@ -63,3 +63,5 @@ target/
 test/credentials.json
 src/frontend/node_modules
 src/frontend/bower_components
+src/frontend/compile
+src/frontend/build
