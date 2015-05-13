@@ -115,7 +115,7 @@ gulp.task('watch', ['build'], function () {
             name: 'Stylus'
         },
         function (files) {
-            return files
+            return gulp.src(cfg.appFiles.stylus)
                 .pipe(buildStylus())
         });
 

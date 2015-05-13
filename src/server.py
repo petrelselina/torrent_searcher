@@ -1,10 +1,11 @@
 import os
 from flask import Flask, send_file, send_from_directory
 
-BUILD_PATH = './frontend/build/'
-TEST_FOLDER = './frontend/src/static/'
+BUILD_PATH = os.path.abspath(os.path.join(__file__, '..', 'frontend', 'build'))
 
-app = Flask(__name__, instance_path=os.path.dirname(__file__), static_folder=BUILD_PATH, instance_relative_config=True)
+TEST_FOLDER = os.path.abspath(os.path.join(__file__, '..', 'frontend', 'src', 'static'))
+
+app = Flask(__name__, instance_path=os.path.dirname(__file__), static_folder=BUILD_PATH)
 app.debug = True
 
 
