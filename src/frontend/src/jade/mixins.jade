@@ -1,0 +1,13 @@
+- var SDN_URL = "https://cdnjs.cloudflare.com/ajax/libs/"
+
+mixin script(url)
+    script(type="text/javascript", src="#{url}")
+
+mixin style(url)
+    link(type="text/css", rel="stylesheet", href="#{url}")
+
+mixin script-cdn(relativeUrl)
+    +script(SDN_URL + relativeUrl)
+
+mixin style-cdn(relativeUrl)
+    +style(SDN_URL + relativeUrl)
