@@ -1,4 +1,5 @@
 import re
+import pandas
 from abc import abstractmethod, ABCMeta, abstractproperty
 
 import logbook
@@ -56,6 +57,26 @@ class TorrentSearcher(object):
     @abstractproperty
     def base_url(self):
         pass
+
+    def create_dataframe(self, term):
+        query_term_url = self.query_url + term
+        resp = self.session.get(query_term_url, timeout=None)
+        df = pandas.read_html(resp.text)
+
+        # if we didn't get a DataFrame, we should have gotten a list of frames
+        if not type(df) == pandas.DataFrame:
+            selected_frame = df[0]
+            # select the biggest frame (should be the actual table)
+            for d in df[1:]:
+                if len(selected_frame.columns) < len(d.columns):
+                    selected_frame = d
+                else:
+                    continue
+            df = selected_frame
+
+        # clean it up a little bit
+        df.dropna(axis=1, how='any', inplace=True)
+        return df
 
     def query_tracker(self, term):
         results = []
