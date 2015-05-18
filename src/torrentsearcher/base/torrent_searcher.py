@@ -10,7 +10,6 @@ from lxml.html import fromstring
 from requests import Session
 from torrentsearcher.base.utils import get_latest_user_agent, SIZE_REGEX
 
-
 logger = logbook.Logger(__name__)
 
 
@@ -64,15 +63,8 @@ class TorrentSearcher(object):
         df = pandas.read_html(resp.text)
 
         # if we didn't get a DataFrame, we should have gotten a list of frames
-        if not type(df) == pandas.DataFrame:
-            selected_frame = df[0]
-            # select the biggest frame (should be the actual table)
-            for d in df[1:]:
-                if len(selected_frame.columns) < len(d.columns):
-                    selected_frame = d
-                else:
-                    continue
-            df = selected_frame
+        if isinstance(df, list):
+            df = max(df, key=lambda frame: len(frame.columns))
 
         # clean it up a little bit
         df.dropna(axis=1, how='any', inplace=True)
