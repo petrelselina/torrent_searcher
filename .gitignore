@@ -66,3 +66,4 @@ src/frontend/bower_components
 src/frontend/compile
 src/frontend/build
 *.orig
+test/fixtures/cassettes/

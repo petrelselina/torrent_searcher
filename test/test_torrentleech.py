@@ -1,43 +1,54 @@
-import pytest
 import json
-import os
+import pytest
 
-from httmock import urlmatch, HTTMock, all_requests
+from pathlib import Path
+from betamax import Betamax
 from lxml.etree import XPath
 from lxml.html import fromstring
 
 from torrentsearcher.trackers.torrentleech import TorrentLeechSearcher
 
-SAMPLES_DIR = os.path.join(os.path.dirname(__file__), 'samples')
+with Betamax.configure() as config:
+    config.cassette_library_dir = Path(__file__).parent.joinpath('fixtures', 'cassettes').__str__()
 
-with open(os.path.join(os.path.dirname(__file__), 'credentials.json')) as f:
+with Path(__file__).parent.joinpath('credentials.json').open() as f:
     credentials_json = json.load(f)
     username, password = credentials_json['tl_username'], credentials_json['tl_password']
 
+USER_XPATH = XPath('//*[@id="memberBar"]/div[1]/b/a')
 
-class TestTorrentLeech():
 
-    USER_XPATH = XPath('//*[@id="memberBar"]/div[1]/b/a')
+@pytest.fixture
+def tl_searcher(request):
+    tl_searcher = TorrentLeechSearcher()
+    session = tl_searcher.session
+    betamax = Betamax(session, cassette_library_dir=config.cassette_library_dir)
+    betamax.use_cassette(request.function.__name__)
+    betamax.start()
+    request.addfinalizer(betamax.stop)
+    return tl_searcher
 
-    @classmethod
-    @pytest.fixture(scope='class', autouse=True)
-    def setup(self):
-        self.tl_searcher = TorrentLeechSearcher()
 
-    def test_successful_connection(self):
-        self.tl_searcher.login(username, password)
-        html = fromstring(self.tl_searcher.session.get('http://torrentleech.org/user/messages').text)
-        assert self.USER_XPATH(html)[0].get('href') == '/profile/' + username
+@pytest.fixture
+def logged_in_tl_searcher(tl_searcher):
+    tl_searcher.login(username, password)
+    return tl_searcher
 
-    @urlmatch(scheme='https', netloc='torrentleech.org', path='/torrents/browse/index/query/game%20of%20thrones')
-    def tl_game_of_thrones_mock(self, url, request):
-        with open(os.path.join(SAMPLES_DIR,'torrentleech_query_game_of_thrones_results.html')) as c:
-            return {'status_code': 200,
-                    'content': c.read()}
 
-    def test_getting_torrent_list(self):
-        with HTTMock(self.tl_game_of_thrones_mock):
-            parsed_results = json.loads(json.dumps(self.tl_searcher.query_tracker("game of thrones")))
-            with open(os.path.join(SAMPLES_DIR, 'torrentleech_query_game_of_thrones_results.json')) as json_results:
-                sample_results = json.load(json_results)
-            assert sample_results == parsed_results
+@pytest.fixture
+def table(logged_in_tl_searcher):
+    results = json.loads(logged_in_tl_searcher.query_tracker('game of thrones'))
+    return results
+
+
+def test_login(tl_searcher):
+    """
+    this tests if the PM page is visible (it should only be exposed to logged in users)
+    """
+    tl_searcher.login(username, password)
+    html = fromstring(tl_searcher.session.get('http://torrentleech.org/user/messages').text)
+    assert USER_XPATH(html)[0].get('href') == '/profile/' + username
+
+
+def test_getting_torrent_list(table):
+    assert len(table['name']) == 100
