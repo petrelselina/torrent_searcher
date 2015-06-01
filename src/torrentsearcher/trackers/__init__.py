@@ -1,1 +1,3 @@
-__author__ = 'Omer'
+from .torrentleech import TorrentLeechSearcher
+from .kickasstorrents import KickAssTorrentsSearcher
+from .piratebay import PirateBaySearcher
