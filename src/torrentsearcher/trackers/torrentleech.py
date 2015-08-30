@@ -1,18 +1,19 @@
 import logbook
 import pandas
 
-from torrentsearcher.base.torrent_searcher import TorrentSearcher
+from torrentsearcher.base.tracker import Tracker
 
 logger = logbook.Logger(__name__)
 
 
-class TorrentLeechSearcher(TorrentSearcher):
+class TorrentLeech(Tracker):
+    name = 'TorrentLeech'
     base_url = "https://torrentleech.org/"
     query_url = "https://torrentleech.org/torrents/browse/index/query/"
     login_url = "https://torrentleech.org/user/account/login/"
 
     def __init__(self):
-        super(TorrentLeechSearcher, self).__init__()
+        super(Tracker, self).__init__()
         self._is_logged_on = False
 
     def login(self, username, password):

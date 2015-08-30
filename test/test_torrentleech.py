@@ -6,7 +6,7 @@ from betamax import Betamax
 from lxml.etree import XPath
 from lxml.html import fromstring
 
-from torrentsearcher.trackers.torrentleech import TorrentLeechSearcher
+from torrentsearcher.trackers.torrentleech import Tracker
 
 with Betamax.configure() as config:
     config.cassette_library_dir = Path(__file__).parent.joinpath('fixtures', 'cassettes').__str__()
@@ -20,7 +20,7 @@ USER_XPATH = XPath('//*[@id="memberBar"]/div[1]/b/a')
 
 @pytest.fixture
 def tl_searcher(request):
-    tl_searcher = TorrentLeechSearcher()
+    tl_searcher = Tracker()
     session = tl_searcher.session
     betamax = Betamax(session, cassette_library_dir=config.cassette_library_dir)
     betamax.use_cassette(request.function.__name__)

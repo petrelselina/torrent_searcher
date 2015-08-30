@@ -1,9 +1,9 @@
 import pandas
 
-from torrentsearcher.base.torrent_searcher import TorrentSearcher
+from torrentsearcher.base.tracker import Tracker
 
 
-class KickAssTorrentsSearcher(TorrentSearcher):
+class KickAssTorrentsSearcher(Tracker):
     query_url = 'https://kickass.to/usearch/'
     base_url = 'https://kickass.to/'
 

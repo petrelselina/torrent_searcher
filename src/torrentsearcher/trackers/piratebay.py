@@ -1,16 +1,17 @@
-import logbook
-import pandas
 import re
 
-from torrentsearcher.base.torrent_searcher import TorrentSearcher
+import logbook
+import pandas
 
+from torrentsearcher.base.tracker import Tracker
 
 logger = logbook.Logger(__name__)
 
 PIRATEBAY_SIZE_REGEX = "([\d.]+)([M,G]).?B"
 size_re = re.compile(PIRATEBAY_SIZE_REGEX, re.IGNORECASE | re.UNICODE)
 
-class PirateBaySearcher(TorrentSearcher):
+
+class PirateBaySearcher(Tracker):
     base_url = "https://thepiratebay.se"
     query_url = "https://thepiratebay.se/search/"
 
@@ -30,7 +31,7 @@ class PirateBaySearcher(TorrentSearcher):
         if size_tuple[1] == 'M':
             size = float(size_tuple[0])
         if size_tuple[1] == 'G':
-            size = float(size_tuple[0])*1024
+            size = float(size_tuple[0]) * 1024
 
         return size
 

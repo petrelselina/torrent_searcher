@@ -8,7 +8,7 @@ from torrentsearcher.base.utils import get_latest_user_agent
 logger = logbook.Logger(__name__)
 
 
-class TorrentSearcher(object):
+class Tracker(object):
     __metaclass__ = ABCMeta
 
     def __init__(self):
@@ -19,6 +19,14 @@ class TorrentSearcher(object):
     def login(self, username, password):
         """After the login, the session object should be initialized"""
         return
+
+    @abstractproperty
+    def name(self):
+        """
+        this url should refer to the address used for querying the tracker
+        ex: https://thepiratebay.se/search/
+        """
+        pass
 
     @abstractproperty
     def query_url(self):
