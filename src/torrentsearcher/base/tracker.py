@@ -23,8 +23,7 @@ class Tracker(object):
     @abstractproperty
     def name(self):
         """
-        this url should refer to the address used for querying the tracker
-        ex: https://thepiratebay.se/search/
+        The tracker's name
         """
         pass
 
@@ -41,5 +40,5 @@ class Tracker(object):
         pass
 
     @abstractmethod
-    def query_tracker(self, term, categories=()):
+    def query_tracker(self, term=None, exclude_query=None, categories=None, results_limit=None):
         pass
