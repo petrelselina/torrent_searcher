@@ -10,5 +10,5 @@ setup(
     author_email='omerbenamram@gmail.com',
     description='A Simple Torrent Searcher',
     setup_requires=['requests', 'logbook', 'BeautifulSoup4', 'html5lib', 'lxml',
-                    'humanfriendly', 'pandas', 'betamax', 'pytest']
+                    'humanfriendly', 'pandas', 'betamax', 'pytest', 'pyzmq', 'simplejson']
 )

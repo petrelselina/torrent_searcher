@@ -20,21 +20,21 @@ class TorrentResultCollection(object):
         raise NotImplementedError()
 
     def __repr__(self):
-        return "<{} Torrents>"
+        return "<{} Torrents>".format(len(self.results))
 
 
 class TorrentResult(object):
     def __init__(self, result):
-        assert isinstance(result['tracker'], Tracker), "Tracker must be an instance of tracker object!"
         self.tracker = result['tracker']
         self.name = result['name']
         self.seeders = result['seeders']
         self.leechers = result['leechers']
-        #self.link = result['link']
-        assert isinstance(result['torrent'], Torrent), "Tracker must be an instance of tracker object!"
-        self._torrent = result['torrent']
+        self.files = None
+        self.num_files = None
 
-        self.num_files = len(self._torrent.files)
+        if result['torrent']:
+            self.files = result['torrent'].files
+            self.num_files = len(self.files)
 
     def __repr__(self):
         return "<{name} - Seeders : {seeders}, leechers {leechers} at {tracker}>".format(name=self.name,

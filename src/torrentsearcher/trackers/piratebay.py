@@ -1,12 +1,14 @@
 import re
 
+import simplejson as json
 from bs4 import BeautifulSoup
-
 import logbook
 import pandas
+import zmq
 
+from torrentsearcher import constants
 from torrentsearcher.base.tracker import Tracker
-from torrentsearcher.utils.torrent_info import TorrentClient
+from torrentsearcher.utils.torrent_info import TorrentClient, TorrentResolveMsg
 from torrentsearcher.base.results import TorrentResultCollection
 
 logger = logbook.Logger(__name__)
@@ -16,12 +18,22 @@ size_re = re.compile(PIRATEBAY_SIZE_REGEX, re.IGNORECASE | re.UNICODE)
 
 
 class PirateBaySearcher(Tracker):
+    name = "Pirate Bay"
     base_url = "https://thepiratebay.se"
     query_url = "https://thepiratebay.se/search/"
 
+    SEND_ADDR = constants.TORRENTS_IN_STREAM
+    RECV_ADDR = constants.TORRENTS_OUT_STREAM
+
     def __init__(self):
-        super(PirateBaySearcher, self).__init__()
-        self._client = None
+        super().__init__()
+        self._client = TorrentClient()
+        self._client.start()
+        self.context = zmq.Context.instance()
+        self.recv_sock = self.context.socket(zmq.PULL)
+        self.send_sock = self.context.socket(zmq.PUSH)
+        self.send_sock.connect(self.SEND_ADDR)
+        self.recv_sock.connect(self.RECV_ADDR)
 
     def login(self, username, password):
         return
@@ -75,13 +87,16 @@ class PirateBaySearcher(Tracker):
 
         dicts = df.to_dict('records')
 
-        if not self._client:
-            self._client = TorrentClient()
-
-        client = self._client
-
         for result in dicts:
             result['tracker'] = self
-            result['torrent'] = client.torrent_from_magnet_link(result['magnet'])
+            msg = TorrentResolveMsg(magnet_link=result['magnet'], timeout=30)
+            msg.send_msg(self.send_sock)
+
+        resolved_magnet_links = {}
+        while len(resolved_magnet_links) <= len(dicts):
+            result = self.recv_sock.recv_json()
+            logger.info('Got response {status} for {id}'.format(status=result['status'],
+                                                                id=result['id']))
+            resolved_magnet_links[result['id']] = json.loads(result['object'])
 
         return TorrentResultCollection(results=dicts)
