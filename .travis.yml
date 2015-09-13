@@ -1,0 +1,24 @@
+# Travis CI configuration file
+# http://about.travis-ci.org/docs/
+
+language: python
+
+# Available Python versions:
+# http://about.travis-ci.org/docs/user/ci-environment/#Python-VM-images
+python:
+  - "3.4"
+install:
+ - pip install requests
+ - pip install logbook
+ - pip install BeautifulSoup4
+ - pip install html5lib
+ - pip install lxml
+ - pip install pandas
+ - pip install betamax
+ - pip install pytest
+ - pip install pyzmq
+ - pip install simplejson
+ - python ./src/setup.py develop
+ 
+script:
+  - py.test
