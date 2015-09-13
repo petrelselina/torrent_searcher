@@ -53,5 +53,5 @@ def test_piratebay_get_page(piratebay_searcher):
 
 
 def test_piratebay_query_tracker(piratebay_searcher):
-    results = piratebay_searcher.query_tracker('game of thrones')
+    results = piratebay_searcher.query_tracker('Taylor Swift 1989')
     assert len(results) > 1
