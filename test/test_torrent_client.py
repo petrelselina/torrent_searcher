@@ -1,13 +1,12 @@
 import time
-import simplejson as json
 
+import simplejson as json
 import pytest
 import zmq
-from torrentsearcher import constants
 from zmq.eventloop import IOLoop
 
-
-from torrentsearcher.utils.torrent_info import TorrentClient, TorrentResolveMsg
+from torrentsearcher import constants
+from torrentsearcher.torrent_client.torrent_info import TorrentClient, TorrentResolveMsg
 
 sample_magnet_link = 'magnet:?xt=urn:btih:1a56b539a9030efdaf9864c50303b546ac8dc0ce&dn=Ayreon+-+2013+-+The+Theory+of+Everything+320kbps&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969'
 

@@ -1,43 +1,102 @@
+from enum import Enum, unique
+from itertools import islice
 import re
+import warnings
+import asyncio
+from asyncio import coroutine
 
-import simplejson as json
+import aiohttp
 from bs4 import BeautifulSoup
 import logbook
 import pandas
-import zmq
 
-from torrentsearcher import constants
 from torrentsearcher.base.tracker import Tracker
-from torrentsearcher.utils.torrent_info import TorrentClient, TorrentResolveMsg
-from torrentsearcher.base.results import TorrentResultCollection
 
 logger = logbook.Logger(__name__)
 
 PIRATEBAY_SIZE_REGEX = "([\d.]+)([M,G]).?B"
+PAGE_LOOKAHEAD = 5
 size_re = re.compile(PIRATEBAY_SIZE_REGEX, re.IGNORECASE | re.UNICODE)
+
+
+@unique
+class PirateBayCategories(Enum):
+    All = '0'
+
+    @unique
+    class Audio(Enum):
+        Music = '101'
+        Audio_Books = '102'
+        Sound_Clips = '103'
+        FLAC = '104'
+        Other = '199'
+
+    @unique
+    class Video(Enum):
+        Movies = '201'
+        Movies_DVDR = '202'
+        Music_Videos = '203'
+        Movie_Clips = '204'
+        TV_Shows = '205'
+        Handheld = '206'
+        HD_Movies = '207'
+        HD_TV_Shows = '208'
+        Movies_3D = '209'
+        Other = '299'
+
+    @unique
+    class Applications(Enum):
+        Windows = '301'
+        Mac = '302'
+        UNIX = '303'
+        Others = '399'
+
+    @unique
+    class Games(Enum):
+        PC = '401'
+        Mac = '402'
+        PSx = '403'
+        XBOX360 = '404'
+        Wii = '405'
+        Handheld = '406'
+        IOS_iPad_iPhone = '407'
+        Android = '408'
+        Other = '499'
+
+    @unique
+    class Other(Enum):
+        Ebooks = '601'
+        Comics = '602'
+        Pictures = '603'
+        Covers = '604'
+        Physibles = '605'
+        Other = '699'
+
+
+class PirateBayExceptionBase(Exception):
+    pass
+
+
+class NoResultsException(PirateBayExceptionBase):
+    pass
 
 
 class PirateBaySearcher(Tracker):
     name = "Pirate Bay"
     base_url = "https://thepiratebay.se"
-    query_url = "https://thepiratebay.se/search/"
+    query_url = "https://thepiratebay.se/search"
+    default_categories = [PirateBayCategories.All]
 
-    SEND_ADDR = constants.TORRENTS_IN_STREAM
-    RECV_ADDR = constants.TORRENTS_OUT_STREAM
-
-    def __init__(self):
+    def __init__(self, loop=None):
         super().__init__()
-        self._client = TorrentClient()
-        self._client.start()
-        self.context = zmq.Context.instance()
-        self.recv_sock = self.context.socket(zmq.PULL)
-        self.send_sock = self.context.socket(zmq.PUSH)
-        self.send_sock.connect(self.SEND_ADDR)
-        self.recv_sock.connect(self.RECV_ADDR)
+        self.loop = loop or asyncio.get_event_loop()
+        self.session = aiohttp.ClientSession(loop=self.loop)
+        self.sem = asyncio.Semaphore(PAGE_LOOKAHEAD)
 
     def login(self, username, password):
         return
 
+# ------------- PARSE LOGIC ----------------------
     @staticmethod
     def _get_size_from_name_string(name):
         name = name.replace(u'\xa0', u'')
@@ -63,15 +122,14 @@ class PirateBaySearcher(Tracker):
     def _clean_name(name):
         return name.replace(u'\xa0', u'').split('Uploaded')[0].strip()
 
-    def query_tracker(self, term=None, exclude_query=None, categories=None, results_limit=None):
-        query_term_url = self.query_url + term
-        resp = self.session.get(query_term_url, timeout=None)
-        df = pandas.read_html(resp.text)  # if we didn't get a DataFrame, we should have gotten a list of frames
-        soup = BeautifulSoup(resp.text)
+    def _parse_page(self, page_text):
+        try:
+            df = pandas.read_html(page_text, attrs={'id': 'searchResult'})
+        except ValueError:
+            logger.debug('No tables found in page')
+            raise NoResultsException()
 
-        if isinstance(df, list):
-            df = max(df, key=lambda frame: len(frame.columns))
-
+        df = df[0]
         # clean it up a little bit
         df.dropna(axis=1, how='any', inplace=True)
         df.columns = ['type', 'name', 'seeders', 'leechers']
@@ -80,23 +138,78 @@ class PirateBaySearcher(Tracker):
         df['size'] = df.name.apply(self._get_size_from_name_string)
         df['name'] = df.name.apply(self._clean_name)
 
+        df.insert(loc=4, column='magnet', value=self._get_all_magnet_links_in_page(page_text=page_text))
+
+        return df.to_dict('records')
+
+    @staticmethod
+    def _get_all_magnet_links_in_page(page_text):
+        soup = BeautifulSoup(page_text)
         magnets = list(
             map(lambda x: x['href'], soup.find_all('a', href=re.compile('magnet.+', re.IGNORECASE | re.UNICODE))))
+        return magnets
 
-        df.insert(loc=4, column='magnet', value=magnets)
+# -------------------------------------------------
 
-        dicts = df.to_dict('records')
+    @coroutine
+    def _get_page(self, page):
+        logger.debug('Going to fetch page {}'.format(page))
+        with (yield from self.sem):
+            resp = yield from self.session.get(page)
+            if resp.status != 200:
+                logger.warning('Bad status code {code} at page {page}'.format(code=resp.status,
+                                                                              page=page))
+                self.sem.release()
+                return None
 
-        for result in dicts:
-            result['tracker'] = self
-            msg = TorrentResolveMsg(magnet_link=result['magnet'], timeout=30)
-            msg.send_msg(self.send_sock)
+            text = yield from resp.text()
+            results = self._parse_page(text)
 
-        resolved_magnet_links = {}
-        while len(resolved_magnet_links) <= len(dicts):
-            result = self.recv_sock.recv_json()
-            logger.info('Got response {status} for {id}'.format(status=result['status'],
-                                                                id=result['id']))
-            resolved_magnet_links[result['id']] = json.loads(result['object'])
+        return results
 
-        return TorrentResultCollection(results=dicts)
+    def query_tracker(self, term=None, exclude_term=None, categories=None, results_limit=25, timeout=15):
+        category = categories
+        all_torrents = []
+        start = 0
+        while len(all_torrents) <= results_limit:
+            url_builder = self._URLBuilderIterator(term=term, categories=category)
+            pages = [page for page in islice(url_builder, start, start + PAGE_LOOKAHEAD)]
+            tasks = []
+            for page in pages:
+                tasks.append(self.loop.create_task(self._get_page(page)))
+
+            fetched = self.loop.run_until_complete(asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION))
+            all_torrents.extend(fetched)
+            start += PAGE_LOOKAHEAD
+
+    class _URLBuilderIterator(object):
+        def __init__(self, term, categories):
+            self.term = term
+            self.categories = categories or PirateBaySearcher.default_categories
+            self.pagenum = 0
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            url = self.build_url(term=self.term,
+                                 categories=self.categories,
+                                 pagenum=self.pagenum,
+                                 action=99 if self.pagenum == 0 else 7)
+            self.pagenum += 1
+            return url
+
+        def build_url(self, term=None, categories=None, pagenum=0, action=99):
+            assert term, 'function must be called with term'
+            assert categories, 'function must be invoked with category'
+            category = categories[0]
+
+            if len(categories) > 1:
+                warnings.warn("PirateBay supports only one category, defaulting to all")
+                category = PirateBaySearcher.default_categories
+
+            return '{base}/{term}/{pagenum}/{action}/{category}'.format(base=PirateBaySearcher.query_url,
+                                                                        term=term,
+                                                                        pagenum=pagenum,
+                                                                        action=action,
+                                                                        category=category.value)
