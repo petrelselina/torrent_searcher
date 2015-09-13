@@ -2,10 +2,7 @@ from enum import Enum, unique
 from itertools import islice
 import re
 import warnings
-import asyncio
-from asyncio import coroutine
 
-import aiohttp
 from bs4 import BeautifulSoup
 import logbook
 import pandas
@@ -87,16 +84,13 @@ class PirateBaySearcher(Tracker):
     query_url = "https://thepiratebay.se/search"
     default_categories = [PirateBayCategories.All]
 
-    def __init__(self, loop=None):
+    def __init__(self):
         super().__init__()
-        self.loop = loop or asyncio.get_event_loop()
-        self.session = aiohttp.ClientSession(loop=self.loop)
-        self.sem = asyncio.Semaphore(PAGE_LOOKAHEAD)
 
     def login(self, username, password):
         return
 
-# ------------- PARSE LOGIC ----------------------
+    # ------------- PARSE LOGIC ----------------------
     @staticmethod
     def _get_size_from_name_string(name):
         name = name.replace(u'\xa0', u'')
@@ -149,38 +143,25 @@ class PirateBaySearcher(Tracker):
             map(lambda x: x['href'], soup.find_all('a', href=re.compile('magnet.+', re.IGNORECASE | re.UNICODE))))
         return magnets
 
-# -------------------------------------------------
+    # -------------------------------------------------
 
-    @coroutine
     def _get_page(self, page):
-        logger.debug('Going to fetch page {}'.format(page))
-        with (yield from self.sem):
-            resp = yield from self.session.get(page)
-            if resp.status != 200:
-                logger.warning('Bad status code {code} at page {page}'.format(code=resp.status,
-                                                                              page=page))
-                self.sem.release()
-                return None
-
-            text = yield from resp.text()
-            results = self._parse_page(text)
-
-        return results
+        resp = self.session.get(page)
+        return self._parse_page(resp.text)
 
     def query_tracker(self, term=None, exclude_term=None, categories=None, results_limit=25, timeout=15):
         category = categories
         all_torrents = []
-        start = 0
         while len(all_torrents) <= results_limit:
             url_builder = self._URLBuilderIterator(term=term, categories=category)
-            pages = [page for page in islice(url_builder, start, start + PAGE_LOOKAHEAD)]
-            tasks = []
-            for page in pages:
-                tasks.append(self.loop.create_task(self._get_page(page)))
+            try:
+                results = self._get_page(next(url_builder))
+            except NoResultsException:
+                break
 
-            fetched = self.loop.run_until_complete(asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION))
-            all_torrents.extend(fetched)
-            start += PAGE_LOOKAHEAD
+            all_torrents.extend(results)
+
+        return all_torrents
 
     class _URLBuilderIterator(object):
         def __init__(self, term, categories):

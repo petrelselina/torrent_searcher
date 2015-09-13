@@ -1,7 +1,7 @@
 from itertools import islice
-import logging
+from pathlib import Path
 
-import vcr
+from betamax import Betamax
 
 import pytest
 
@@ -9,15 +9,18 @@ from torrentsearcher import PirateBaySearcher
 
 __author__ = 'Omer'
 
-logging.basicConfig() # you need to initialize logging, otherwise you will not see anything from vcrpy
-vcr_log = logging.getLogger("vcr")
-vcr_log.setLevel(logging.INFO)
+with Betamax.configure() as config:
+    config.cassette_library_dir = Path(__file__).parent.joinpath('fixtures', 'cassettes').__str__()
 
 
-@pytest.mark.asyncio
 @pytest.fixture
-def piratebay_searcher(event_loop):
-    searcher = PirateBaySearcher(loop=event_loop)
+def piratebay_searcher(request):
+    searcher = PirateBaySearcher()
+    session = searcher.session
+    betamax = Betamax(session, cassette_library_dir=config.cassette_library_dir)
+    betamax.use_cassette(request.function.__name__)
+    betamax.start()
+    request.addfinalizer(betamax.stop)
     return searcher
 
 
@@ -44,11 +47,9 @@ def test_piratebay_url_builder(piratebay_searcher, sample_urls):
     assert urls == [_ for _ in islice(sample_urls, 0, 5)]
 
 
-@pytest.mark.asyncio
-@vcr.use_cassette()
 def test_piratebay_get_page(piratebay_searcher):
     test_url = 'https://thepiratebay.vg/search/ayreon%20The%20theory%20of%20everything/0/99/0'
-    resp = yield from piratebay_searcher._get_page(test_url)
+    resp = piratebay_searcher._get_page(test_url)
     assert len(resp) == 4
 
 
